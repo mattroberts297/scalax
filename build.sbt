@@ -6,8 +6,13 @@ lazy val root = (project in file(".")).settings(
     "com.typesafe.akka" %% "akka-stream-experimental" % "1.0",
     "com.typesafe.akka" %% "akka-http-core-experimental" % "1.0",
     "com.typesafe.akka" %% "akka-http-experimental" % "1.0",
+    "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "1.0",
     "com.typesafe.akka" %% "akka-http-testkit-experimental" % "1.0" % "test",
-    "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+    "com.typesafe.slick" %% "slick" % "3.1.0",
+    "com.h2database" % "h2" % "1.4.190",
+    "ch.qos.logback" % "logback-classic" % "1.1.3",
+    "org.scalatest" %% "scalatest" % "2.2.4" % "test",
+    "org.slf4s" %% "slf4s-api" % "1.7.12",
+    "org.mockito" % "mockito-all" % "1.10.19" % "test"
   )
 )
-
