@@ -5,8 +5,9 @@ yum install -y sbt
 useradd --create-home --system akkahttp
 mkdir -p /opt/akkahttp
 chown akkahttp:akkahttp /opt/akkahttp
-su akkahttp
+su akkahttp <<EOF
 cd /opt/akkahttp
 git clone https://github.com/mattroberts297/scalax.git .
 git checkout responsive
-sbt run
+nohup sbt run &
+EOF

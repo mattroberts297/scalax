@@ -103,11 +103,12 @@
           "useradd --create-home --system akkahttp",
           "mkdir -p /opt/akkahttp",
           "chown akkahttp:akkahttp /opt/akkahttp",
-          "su akkahttp",
+          "su akkahttp <<EOF",
           "cd /opt/akkahttp",
           "git clone https://github.com/mattroberts297/scalax.git .",
           "git checkout responsive",
-          "sbt run"
+          "nohup sbt run &",
+          "EOF"
         ]]}}
       }
     },
@@ -122,7 +123,7 @@
         "SecurityGroupEgress" : [
           { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
         ],
-        "Tags" : [ { "Key" : "Name", "Value" : "responsive-app-security-group" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "responsive-elb-security-group" } ]
       }
     },
     "elb" : {
@@ -136,13 +137,7 @@
           "InstancePort" : "8080",
           "Protocol" : "HTTP"
         } ],
-        "HealthCheck" : {
-          "Target" : "HTTP:8080/patients",
-          "HealthyThreshold" : "3",
-          "UnhealthyThreshold" : "5",
-          "Interval" : "30",
-          "Timeout" : "5"
-        }
+        "Tags" : [ { "Key" : "Name", "Value" : "responsive-elb" } ]
       }
     }
   }
