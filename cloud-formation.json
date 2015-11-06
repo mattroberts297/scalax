@@ -70,12 +70,11 @@
     "appSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "GroupDescription" : "Allow all access from vpc cidr and limited access from internet",
+        "GroupDescription" : "Allow access on 8080 from within the vpc",
         "VpcId" : { "Ref" : "vpc" },
         "SecurityGroupIngress" : [
-          { "IpProtocol" : "icmp", "CidrIp" : "0.0.0.0/0", "FromPort" : "-1",  "ToPort" : "-1" },
           { "IpProtocol" : "tcp", "CidrIp" : "0.0.0.0/0", "FromPort" : "22",  "ToPort" : "22" },
-          { "IpProtocol" : "-1", "CidrIp" : "10.0.0.0/16", "FromPort" : "8080",  "ToPort" : "8080" }
+          { "IpProtocol" : "tcp", "CidrIp" : "10.0.0.0/16", "FromPort" : "8080",  "ToPort" : "8080" }
         ],
         "SecurityGroupEgress" : [
           { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
@@ -112,9 +111,24 @@
         ]]}}
       }
     },
+    "elbSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Allow all access on 80 from the internet",
+        "VpcId" : { "Ref" : "vpc" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "CidrIp" : "0.0.0.0/0", "FromPort" : "80",  "ToPort" : "80" }
+        ],
+        "SecurityGroupEgress" : [
+          { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
+        ],
+        "Tags" : [ { "Key" : "Name", "Value" : "responsive-app-security-group" } ]
+      }
+    },
     "elb" : {
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties" : {
+        "SecurityGroups" : [{ "Ref" : "elbSecurityGroup" }],
         "Subnets" : [ { "Ref" : "subnet" } ],
         "Instances" : [ { "Ref" : "appInstance" } ],
         "Listeners" : [ {
@@ -123,9 +137,7 @@
           "Protocol" : "HTTP"
         } ],
         "HealthCheck" : {
-          "Target" : {
-            "Fn::Join" : "HTTP:8080/patients",
-          },
+          "Target" : "HTTP:8080/patients",
           "HealthyThreshold" : "3",
           "UnhealthyThreshold" : "5",
           "Interval" : "30",
