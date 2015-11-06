@@ -21,10 +21,7 @@ object Main extends App with PatientRoutes with Daos with ImplicitExecutionConte
       val address = binding.localAddress
       val hostName = address.getHostName
       val port = address.getPort
-      println(s"Server online at http://$hostName:$port")
-      println("Press RETURN to stop...")
-      StdIn.readLine()
-      binding.unbind().onComplete(_ => system.shutdown())
+      println(s"Spray up at http://$hostName:$port")
     }
   }
 }

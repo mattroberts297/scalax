@@ -107,7 +107,7 @@
           "cd /opt/akkahttp",
           "git clone https://github.com/mattroberts297/scalax.git .",
           "git checkout responsive",
-          "nohup sbt run &",
+          "nohup sbt run",
           "EOF"
         ]]}}
       }
@@ -137,6 +137,15 @@
           "InstancePort" : "8080",
           "Protocol" : "HTTP"
         } ],
+        "HealthCheck" : {
+          "Target" : {
+            "Fn::Join" : "HTTP:8080/patients",
+          },
+          "HealthyThreshold" : "2",
+          "UnhealthyThreshold" : "4",
+          "Interval" : "300",
+          "Timeout" : "5"
+        },
         "Tags" : [ { "Key" : "Name", "Value" : "responsive-elb" } ]
       }
     }
