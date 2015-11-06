@@ -5,7 +5,6 @@ import akka.stream.ActorMaterializer
 import akka.http.scaladsl.Http
 import org.scalax.reactive.db.{H2DatabaseDriver, PatientsDao, Daos}
 import org.scalax.reactive.http.PatientRoutes
-import scala.io.StdIn
 
 object Main extends App with PatientRoutes with Daos with ImplicitExecutionContext with ImplicitMaterializer {
   implicit val system = ActorSystem("akka-http-example-system")
@@ -17,7 +16,7 @@ object Main extends App with PatientRoutes with Daos with ImplicitExecutionConte
   }
 
   patients.create().map { _ =>
-      Http().bindAndHandle(route, "localhost", 8080).map { binding =>
+      Http().bindAndHandle(route, "0.0.0.0", 8080).map { binding =>
       val address = binding.localAddress
       val hostName = address.getHostName
       val port = address.getPort
