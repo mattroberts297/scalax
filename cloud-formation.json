@@ -138,9 +138,7 @@
           "Protocol" : "HTTP"
         } ],
         "HealthCheck" : {
-          "Target" : {
-            "Fn::Join" : "HTTP:8080/patients",
-          },
+          "Target" : "HTTP:8080/patients",
           "HealthyThreshold" : "2",
           "UnhealthyThreshold" : "4",
           "Interval" : "300",
