@@ -116,7 +116,7 @@
     "appInstanceA" : {
       "Type" : "AWS::EC2::Instance",
       "Properties" : {
-        "ImageId" : "ami-bff32ccc",
+        "ImageId" : "ami-3bb76f48",
         "InstanceType": "t2.micro",
         "KeyName" : { "Ref" : "keyName" },
         "NetworkInterfaces": [ {
@@ -128,35 +128,36 @@
         "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-instance-a" } ],
         "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
           "#!/bin/bash",
-          "yum install -y git",
-          "curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo",
-          "yum install -y sbt",
-          "useradd --create-home --system akkahttp",
-          "mkdir -p /opt/akkahttp",
-          "chown akkahttp:akkahttp /opt/akkahttp",
-          "su akkahttp <<EOF",
+          "su akkahttp <<EOU",
           "cd /opt/akkahttp",
-          "git clone https://github.com/mattroberts297/scalax.git .",
-          "git checkout resilient",
+          "cat >> conf/application.conf <<EOF",
+          "org.scalax.reactive.db {",
+          "  dataSourceClass = \"org.postgresql.ds.PGSimpleDataSource\"",
+          "  properties = {",
           { "Fn::Join" : [ "", [
-            "sed -i 's/changeme/",
-            { "Ref" : "rdsPassword" },
-            "/g' 'src/main/resources/application.conf'"
-          ] ] },
-          { "Fn::Join" : [ "", [
-            "sed -i 's/127\\.0\\.0\\.1/",
+            "    url = \"jdbc:postgresql://",
             { "Fn::GetAtt" : ["database", "Endpoint.Address"] },
-            "/g' 'src/main/resources/application.conf'"
+            ":5432/reactive\""
           ] ] },
-          "nohup sbt run",
-          "EOF"
+          "    user = \"reactiveapp\"",
+          { "Fn::Join" : [ "", [
+            "    password = \"",
+            { "Ref" : "rdsPassword" },
+            "\""
+          ] ] },
+          "  }",
+          "}",
+          "EOF",
+          "cd bin",
+          "nohup ./akka-http-example &",
+          "EOU"
         ]]}}
       }
     },
     "appInstanceB" : {
       "Type" : "AWS::EC2::Instance",
       "Properties" : {
-        "ImageId" : "ami-bff32ccc",
+        "ImageId" : "ami-3bb76f48",
         "InstanceType": "t2.micro",
         "KeyName" : { "Ref" : "keyName" },
         "NetworkInterfaces": [ {
@@ -168,28 +169,21 @@
         "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-instance-b" } ],
         "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
           "#!/bin/bash",
-          "yum install -y git",
-          "curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo",
-          "yum install -y sbt",
-          "useradd --create-home --system akkahttp",
-          "mkdir -p /opt/akkahttp",
-          "chown akkahttp:akkahttp /opt/akkahttp",
-          "su akkahttp <<EOF",
+          "su akkahttp <<EOU",
           "cd /opt/akkahttp",
-          "git clone https://github.com/mattroberts297/scalax.git .",
-          "git checkout resilient",
-          { "Fn::Join" : [ "", [
-            "sed -i 's/changeme/",
-            { "Ref" : "rdsPassword" },
-            "/g' 'src/main/resources/application.conf'"
-          ] ] },
-          { "Fn::Join" : [ "", [
-            "sed -i 's/127\\.0\\.0\\.1/",
-            { "Fn::GetAtt" : ["database", "Endpoint.Address"] },
-            "/g' 'src/main/resources/application.conf'"
-          ] ] },
-          "nohup sbt run",
-          "EOF"
+          "cat >> conf/application.conf <<EOF",
+          "org.scalax.reactive.db {",
+          "  dataSourceClass = \"org.postgresql.ds.PGSimpleDataSource\"",
+          "  properties = {",
+          { "Fn::Join" : [ "", [ "    url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":5432/reactive\"" ] ] },
+          "    user = \"reactiveapp\"",
+          { "Fn::Join" : [ "", [ "    password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
+          "  }",
+          "}",
+          "EOF",
+          "cd bin",
+          "nohup ./akka-http-example &",
+          "EOU"
         ]]}}
       }
     },
