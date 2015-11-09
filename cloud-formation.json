@@ -60,14 +60,6 @@
           "Tags" : [ { "Key" : "Name", "Value" : "resilient-subnet-b" } ]
        }
     },
-    "databaseSubnetGroup": {
-       "Type" : "AWS::RDS::DBSubnetGroup",
-       "Properties" : {
-          "DBSubnetGroupDescription" : "resilient-database-subnet-group",
-          "SubnetIds" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ],
-          "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-subnet-group" } ]
-       }
-    },
     "routeTable" : {
       "Type" : "AWS::EC2::RouteTable",
       "Properties" : {
@@ -134,18 +126,13 @@
           "org.scalax.reactive.db {",
           "  dataSourceClass = \"org.postgresql.ds.PGSimpleDataSource\"",
           "  properties = {",
-          { "Fn::Join" : [ "", [
-            "    url = \"jdbc:postgresql://",
-            { "Fn::GetAtt" : ["database", "Endpoint.Address"] },
-            ":5432/reactive\""
-          ] ] },
+          { "Fn::Join" : [ "", [ "    url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
           "    user = \"reactiveapp\"",
-          { "Fn::Join" : [ "", [
-            "    password = \"",
-            { "Ref" : "rdsPassword" },
-            "\""
-          ] ] },
+          { "Fn::Join" : [ "", [ "    password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
           "  }",
+          "}",
+          "org.scalax.reactive.memcached {",
+          { "Fn::Join" : [ "", [ "  addresses = \"", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Address"] }, ":", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Port"] }, "\"" ] ] },
           "}",
           "EOF",
           "cd bin",
@@ -175,10 +162,13 @@
           "org.scalax.reactive.db {",
           "  dataSourceClass = \"org.postgresql.ds.PGSimpleDataSource\"",
           "  properties = {",
-          { "Fn::Join" : [ "", [ "    url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":5432/reactive\"" ] ] },
+          { "Fn::Join" : [ "", [ "    url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
           "    user = \"reactiveapp\"",
           { "Fn::Join" : [ "", [ "    password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
           "  }",
+          "}",
+          "org.scalax.reactive.memcached {",
+          { "Fn::Join" : [ "", [ "  addresses = \"", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Address"] }, ":", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Port"] }, "\"" ] ] },
           "}",
           "EOF",
           "cd bin",
@@ -233,6 +223,14 @@
         "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-security-group" } ]
       }
     },
+    "databaseSubnetGroup": {
+       "Type" : "AWS::RDS::DBSubnetGroup",
+       "Properties" : {
+          "DBSubnetGroupDescription" : "resilient-database-subnet-group",
+          "SubnetIds" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ],
+          "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-subnet-group" } ]
+       }
+    },
     "database" : {
       "DeletionPolicy" : "Delete",
       "Type" : "AWS::RDS::DBInstance",
@@ -257,6 +255,37 @@
         "StorageType" : "standard",
         "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-instance" } ],
         "VPCSecurityGroups" : [ { "Ref" : "databaseSecurityGroup" } ]
+      }
+    },
+    "cacheSubnetGroup" : {
+      "Type" : "AWS::ElastiCache::SubnetGroup",
+      "Properties" : {
+        "Description" : "Cache Subnet Group",
+        "SubnetIds" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ]
+      }
+    },
+    "cacheSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "cache-security-group",
+        "VpcId" : { "Ref" : "vpc" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "11211",  "ToPort" : "11211", "SourceSecurityGroupId" : { "Ref" : "appSecurityGroup" } }
+        ],
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-cache-security-group" } ]
+      }
+    },
+    "cacheCluster": {
+      "Type": "AWS::ElastiCache::CacheCluster",
+      "Properties": {
+        "AutoMinorVersionUpgrade": "true",
+        "AZMode": "cross-az",
+        "CacheNodeType": "cache.t2.micro",
+        "CacheSubnetGroupName": { "Ref" : "cacheSubnetGroup" },
+        "ClusterName": "resilient-cache-cluster",
+        "Engine": "memcached",
+        "NumCacheNodes": "2",
+        "VpcSecurityGroupIds": [{"Fn::GetAtt": [ "cacheSecurityGroup", "GroupId"]}]
       }
     }
   }
