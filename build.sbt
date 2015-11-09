@@ -19,5 +19,5 @@ lazy val root = (project in file(".")).
       "org.slf4s" %% "slf4s-api" % "1.7.12",
       "org.mockito" % "mockito-all" % "1.10.19" % "test"
     ),
-    bashScriptExtraDefines += """addJava "-Dconfig.file=${app_home}/../conf/application.conf""""
+    bashScriptExtraDefines in Universal += """addJava "-Dconfig.file=${app_home}/../conf/application.conf""""
   )
