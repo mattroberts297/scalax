@@ -139,12 +139,12 @@
           "git clone https://github.com/mattroberts297/scalax.git .",
           "git checkout resilient",
           { "Fn::Join" : [ "", [
-            "sed -i '.orig' 's/changeme/", 
+            "sed -i 's/changeme/",
             { "Ref" : "rdsPassword" },
             "/g' 'src/main/resources/application.conf'"
           ] ] },
           { "Fn::Join" : [ "", [
-            "sed -i '.orig' 's/127\\.0\\.0\\.1/", 
+            "sed -i 's/127\\.0\\.0\\.1/",
             { "Fn::GetAtt" : ["database", "Endpoint.Address"] },
             "/g' 'src/main/resources/application.conf'"
           ] ] },
@@ -179,12 +179,12 @@
           "git clone https://github.com/mattroberts297/scalax.git .",
           "git checkout resilient",
           { "Fn::Join" : [ "", [
-            "sed -i '.orig' 's/changeme/", 
+            "sed -i 's/changeme/",
             { "Ref" : "rdsPassword" },
-            "/g' src/main/resources/application.conf'"
+            "/g' 'src/main/resources/application.conf'"
           ] ] },
           { "Fn::Join" : [ "", [
-            "sed -i '.orig' 's/127\\.0\\.0\\.1/", 
+            "sed -i 's/127\\.0\\.0\\.1/",
             { "Fn::GetAtt" : ["database", "Endpoint.Address"] },
             "/g' 'src/main/resources/application.conf'"
           ] ] },
