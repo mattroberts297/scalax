@@ -106,7 +106,7 @@
           "cd /opt/akkahttp",
           "git clone https://github.com/mattroberts297/scalax.git .",
           "git checkout responsive",
-          "nohup sbt run",
+          "nohup sbt run &",
           "EOF"
         ]]}}
       }
