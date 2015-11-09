@@ -1,5 +1,4 @@
 aws cloudformation create-stack \
   --region eu-west-1 \
-  --profile matt \
-  --stack-name responsive-stack \
+  --stack-name resilient-stack \
   --template-body file://cloud-formation.json
