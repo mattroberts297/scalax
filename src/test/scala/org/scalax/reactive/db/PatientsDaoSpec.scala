@@ -5,7 +5,6 @@ import java.util.UUID
 import org.scalatest.{Matchers, WordSpec}
 import org.scalax.reactive.http.PatientRoutes
 import org.scalax.reactive.model.Patient
-import org.scalax.reactive.GlobalExecutionContext
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -51,8 +50,9 @@ class PatientsDaoSpec extends WordSpec with Matchers {
   lazy val classUnderTest = classOf[PatientRoutes].getSimpleName
 
   trait PatientsDaoContext {
+    import scala.concurrent.ExecutionContext.global
     val atMost = 5.second
-    val dao = new PatientsDao with H2DatabaseDriver with GlobalExecutionContext
+    val dao = new SqlDao(new H2DatabaseDriver)(global)
     Await.result(dao.create(), atMost)
     val uuid = UUID.randomUUID()
     val patient = Patient(uuid, "Matt Roberts", 0l)

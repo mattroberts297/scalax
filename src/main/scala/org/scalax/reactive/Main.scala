@@ -3,7 +3,7 @@ package org.scalax.reactive
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.Http
-import org.scalax.reactive.db.{PostgresDatabaseDriver, PatientsDao, Daos}
+import org.scalax.reactive.db.{MemcachedDao, PostgresDatabaseDriver, SqlDao, Daos}
 import org.scalax.reactive.http.PatientRoutes
 
 object Main extends App with PatientRoutes with Daos with ImplicitExecutionContext with ImplicitMaterializer {
@@ -11,9 +11,9 @@ object Main extends App with PatientRoutes with Daos with ImplicitExecutionConte
   implicit val context = system.dispatcher
   implicit val materializer = ActorMaterializer()
 
-  val patients = new PatientsDao with PostgresDatabaseDriver with ImplicitExecutionContext {
-    implicit val context = Main.context
-  }
+  val sqlDao = new SqlDao(PostgresDatabaseDriver)
+  val memcachedDao = new MemcachedDao(sqlDao)(context)
+  val patients = memcachedDao
 
   patients.create().onComplete(_ =>
     Http().bindAndHandle(route, "0.0.0.0", 8080).map { binding =>

@@ -2,13 +2,14 @@ package org.scalax.reactive.db
 
 import java.util.UUID
 
-import org.scalax.reactive.ImplicitExecutionContext
 import org.scalax.reactive.model.Patient
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class PatientsDao extends Dao[UUID, Patient] { self: DatabaseDriver with ImplicitExecutionContext =>
-  import driver.api._
+class SqlDao(val databaseDriver: DatabaseDriver)
+            (implicit val context: ExecutionContext) extends Dao[UUID, Patient] {
+  import databaseDriver.driver.api._
+  import databaseDriver.db
 
   class Patients(tag: Tag) extends Table[Patient](tag, "patients") {
     def id = column[UUID]("id", O.PrimaryKey)

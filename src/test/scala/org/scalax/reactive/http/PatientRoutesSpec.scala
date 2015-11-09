@@ -7,13 +7,13 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{MustMatchers, WordSpec}
 import org.scalax.reactive._
-import org.scalax.reactive.db.{Daos, PatientsDao}
+import org.scalax.reactive.db.{Daos, SqlDao}
 
 class PatientRoutesSpec extends WordSpec with MustMatchers with ScalatestRouteTest
   with MockitoSugar with PatientRoutes with Daos with ImplicitExecutionContext with ImplicitMaterializer {
 
   override implicit val context = system.dispatcher
-  override val patients = mock[PatientsDao]
+  override val patients = mock[SqlDao]
 
   s"The $classUnderTest" should {
     "return 501 Not Implemented" when {
