@@ -4,7 +4,10 @@ lazy val root = (project in file(".")).
     name := "akka-http-example",
     version := "0.1.0",
     scalaVersion := "2.11.6",
+    resolvers += "Spy" at "http://files.couchbase.com/maven2/",
     libraryDependencies ++= Seq(
+      "com.bionicspirit" %% "shade" % "1.6.0",
+      "com.github.kxbmap" %% "configs" % "0.3.0",
       "com.typesafe.akka" %% "akka-stream-experimental" % "1.0",
       "com.typesafe.akka" %% "akka-http-core-experimental" % "1.0",
       "com.typesafe.akka" %% "akka-http-experimental" % "1.0",
