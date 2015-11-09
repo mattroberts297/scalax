@@ -54,7 +54,7 @@ trait PatientRoutes extends SprayJsonSupport { self: Daos with ImplicitExecution
   }
 
   def notFound: HttpResponse = {
-    HttpResponse(status = StatusCodes.NotFound)
+    HttpResponse(status = StatusCodes.NotFound) // 404 (client error)
   }
 }
 

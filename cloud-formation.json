@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Parameters" : {
-    "KeyName": {
+    "keyName": {
       "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
       "Type": "String",
       "MinLength": "1",
@@ -9,6 +9,13 @@
       "AllowedPattern" : "[\\x20-\\x7E]*",
       "ConstraintDescription" : "can contain only ASCII characters.",
       "Default": "scalax"
+    },
+    "rdsPassword": {
+      "Description" : "The RDS password to use",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "255",
+      "Default": "EFEB6985FF7599461334E44E8E67458"
     }
   },
   "Resources" : {
@@ -19,13 +26,13 @@
           "EnableDnsSupport" : "true",
           "EnableDnsHostnames" : "true",
           "InstanceTenancy" : "default",
-          "Tags" : [ {"Key" : "Name", "Value" : "responsive-vpc"} ]
+          "Tags" : [ {"Key" : "Name", "Value" : "resilient-vpc"} ]
        }
     },
     "internetGateway" : {
       "Type" : "AWS::EC2::InternetGateway",
       "Properties" : {
-        "Tags" : [ {"Key" : "Name", "Value" : "responsive-internet-gateway"} ]
+        "Tags" : [ {"Key" : "Name", "Value" : "resilient-internet-gateway"} ]
       }
     },
     "vpcGatewayAttachment" : {
@@ -35,20 +42,37 @@
          "InternetGatewayId" : { "Ref" : "internetGateway" }
        }
     },
-    "subnet" : {
+    "subnetA" : {
        "Type" : "AWS::EC2::Subnet",
        "Properties" : {
           "VpcId" : { "Ref" : "vpc" },
-          "CidrBlock" : "10.0.0.0/16",
+          "CidrBlock" : "10.0.0.0/17",
           "AvailabilityZone" : "eu-west-1a",
-          "Tags" : [ { "Key" : "Name", "Value" : "responsive-subnet" } ]
+          "Tags" : [ { "Key" : "Name", "Value" : "resilient-subnet-a" } ]
+       }
+    },
+    "subnetB" : {
+       "Type" : "AWS::EC2::Subnet",
+       "Properties" : {
+          "VpcId" : { "Ref" : "vpc" },
+          "CidrBlock" : "10.0.128.0/17",
+          "AvailabilityZone" : "eu-west-1b",
+          "Tags" : [ { "Key" : "Name", "Value" : "resilient-subnet-b" } ]
+       }
+    },
+    "databaseSubnetGroup": {
+       "Type" : "AWS::RDS::DBSubnetGroup",
+       "Properties" : {
+          "DBSubnetGroupDescription" : "resilient-database-subnet-group",
+          "SubnetIds" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ],
+          "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-subnet-group" } ]
        }
     },
     "routeTable" : {
       "Type" : "AWS::EC2::RouteTable",
       "Properties" : {
         "VpcId" : { "Ref" : "vpc" },
-        "Tags" : [ { "Key" : "Name", "Value" : "responsive-route-table" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-route-table" } ]
       }
     },
     "routeToInternet" : {
@@ -60,41 +84,49 @@
         "GatewayId" : { "Ref" : "internetGateway" }
       }
     },
-    "subnetRouteTableAssociation" : {
+    "subnetRouteTableAssociationA" : {
       "Type" : "AWS::EC2::SubnetRouteTableAssociation",
       "Properties" : {
-        "SubnetId" : { "Ref" : "subnet" },
+        "SubnetId" : { "Ref" : "subnetA" },
+        "RouteTableId" : { "Ref" : "routeTable" }
+      }
+    },
+    "subnetRouteTableAssociationB" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "subnetB" },
         "RouteTableId" : { "Ref" : "routeTable" }
       }
     },
     "appSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
-        "GroupDescription" : "Allow access on 8080 from within the vpc",
+        "GroupDescription" : "Allow access on 8080 from within the elb",
         "VpcId" : { "Ref" : "vpc" },
         "SecurityGroupIngress" : [
-          { "IpProtocol" : "tcp", "CidrIp" : "10.0.0.0/16", "FromPort" : "8080",  "ToPort" : "8080" }
+          { "IpProtocol" : "tcp", "FromPort" : "8080",  "ToPort" : "8080", "SourceSecurityGroupId" : { "Ref" : "elbSecurityGroup" } },
+          { "IpProtocol" : "tcp", "CidrIp" : "0.0.0.0/0", "FromPort" : "22", "ToPort" : "22" }
         ],
         "SecurityGroupEgress" : [
           { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
         ],
-        "Tags" : [ { "Key" : "Name", "Value" : "responsive-app-security-group" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-security-group" } ]
       }
     },
-    "appInstance" : {
+    "appInstanceA" : {
       "Type" : "AWS::EC2::Instance",
       "Properties" : {
         "ImageId" : "ami-bff32ccc",
         "InstanceType": "t2.micro",
-        "KeyName" : { "Ref" : "KeyName" },
+        "KeyName" : { "Ref" : "keyName" },
         "NetworkInterfaces": [ {
           "AssociatePublicIpAddress": "true",
           "DeviceIndex": "0",
           "GroupSet": [{ "Ref" : "appSecurityGroup" }],
-          "SubnetId": { "Ref" : "subnet" }
+          "SubnetId": { "Ref" : "subnetA" }
         } ],
-        "Tags" : [ { "Key" : "Name", "Value" : "responsive-app-instance" } ],
-        "UserData" : { "Fn::Base64" : { "Fn::Join" : ["\n", [
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-instance-a" } ],
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
           "#!/bin/bash",
           "yum install -y git",
           "curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo",
@@ -105,7 +137,57 @@
           "su akkahttp <<EOF",
           "cd /opt/akkahttp",
           "git clone https://github.com/mattroberts297/scalax.git .",
-          "git checkout responsive",
+          "git checkout resilient",
+          { "Fn::Join" : [ "", [
+            "sed -i '.orig' 's/changeme/", 
+            { "Ref" : "rdsPassword" },
+            "/g' 'src/main/resources/application.conf'"
+          ] ] },
+          { "Fn::Join" : [ "", [
+            "sed -i '.orig' 's/127\\.0\\.0\\.1/", 
+            { "Fn::GetAtt" : ["database", "Endpoint.Address"] },
+            "/g' 'src/main/resources/application.conf'"
+          ] ] },
+          "nohup sbt run",
+          "EOF"
+        ]]}}
+      }
+    },
+    "appInstanceB" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "ImageId" : "ami-bff32ccc",
+        "InstanceType": "t2.micro",
+        "KeyName" : { "Ref" : "keyName" },
+        "NetworkInterfaces": [ {
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "GroupSet": [{ "Ref" : "appSecurityGroup" }],
+          "SubnetId": { "Ref" : "subnetB" }
+        } ],
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-instance-b" } ],
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
+          "#!/bin/bash",
+          "yum install -y git",
+          "curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo",
+          "yum install -y sbt",
+          "useradd --create-home --system akkahttp",
+          "mkdir -p /opt/akkahttp",
+          "chown akkahttp:akkahttp /opt/akkahttp",
+          "su akkahttp <<EOF",
+          "cd /opt/akkahttp",
+          "git clone https://github.com/mattroberts297/scalax.git .",
+          "git checkout resilient",
+          { "Fn::Join" : [ "", [
+            "sed -i '.orig' 's/changeme/", 
+            { "Ref" : "rdsPassword" },
+            "/g' src/main/resources/application.conf'"
+          ] ] },
+          { "Fn::Join" : [ "", [
+            "sed -i '.orig' 's/127\\.0\\.0\\.1/", 
+            { "Fn::GetAtt" : ["database", "Endpoint.Address"] },
+            "/g' 'src/main/resources/application.conf'"
+          ] ] },
           "nohup sbt run",
           "EOF"
         ]]}}
@@ -122,15 +204,15 @@
         "SecurityGroupEgress" : [
           { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
         ],
-        "Tags" : [ { "Key" : "Name", "Value" : "responsive-elb-security-group" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-elb-security-group" } ]
       }
     },
     "elb" : {
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties" : {
         "SecurityGroups" : [{ "Ref" : "elbSecurityGroup" }],
-        "Subnets" : [ { "Ref" : "subnet" } ],
-        "Instances" : [ { "Ref" : "appInstance" } ],
+        "Subnets" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ],
+        "Instances" : [ { "Ref" : "appInstanceA" } , { "Ref" : "appInstanceB" } ],
         "Listeners" : [ {
           "LoadBalancerPort" : "80",
           "InstancePort" : "8080",
@@ -143,7 +225,44 @@
           "Interval" : "300",
           "Timeout" : "5"
         },
-        "Tags" : [ { "Key" : "Name", "Value" : "responsive-elb" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-elb" } ]
+      }
+    },
+    "databaseSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "database-security-group",
+        "VpcId" : { "Ref" : "vpc" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "5432",  "ToPort" : "5432", "SourceSecurityGroupId" : { "Ref" : "appSecurityGroup" } }
+        ],
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-security-group" } ]
+      }
+    },
+    "database" : {
+      "DeletionPolicy" : "Delete",
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" :
+      {
+        "AllocatedStorage" : "32",
+        "AllowMajorVersionUpgrade" : false,
+        "AutoMinorVersionUpgrade" : true,
+        "BackupRetentionPeriod" : "7",
+        "DBInstanceClass" : "db.t2.micro",
+        "DBInstanceIdentifier" : "resilient-database-instance",
+        "DBName" : "reactive",
+        "DBSubnetGroupName" : { "Ref" : "databaseSubnetGroup" },
+        "Engine" : "postgres",
+        "EngineVersion" : "9.4.1",
+        "MasterUsername" : "reactiveapp",
+        "MasterUserPassword" : { "Ref" : "rdsPassword" },
+        "MultiAZ" : true,
+        "PreferredBackupWindow" : "04:00-04:30",
+        "PreferredMaintenanceWindow" : "Mon:05:00-Mon:05:30",
+        "PubliclyAccessible" : false,
+        "StorageType" : "standard",
+        "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-instance" } ],
+        "VPCSecurityGroups" : [ { "Ref" : "databaseSecurityGroup" } ]
       }
     }
   }
