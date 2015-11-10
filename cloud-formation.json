@@ -130,8 +130,7 @@
         "GroupDescription" : "Allow access on 8080 from within the elb",
         "VpcId" : { "Ref" : "vpc" },
         "SecurityGroupIngress" : [
-          { "IpProtocol" : "tcp", "FromPort" : "8080",  "ToPort" : "8080", "SourceSecurityGroupId" : { "Ref" : "elbSecurityGroup" } },
-          { "IpProtocol" : "tcp", "CidrIp" : "0.0.0.0/0", "FromPort" : "22", "ToPort" : "22" }
+          { "IpProtocol" : "tcp", "FromPort" : "8080",  "ToPort" : "8080", "SourceSecurityGroupId" : { "Ref" : "elbSecurityGroup" } }
         ],
         "SecurityGroupEgress" : [
           { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
