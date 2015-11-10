@@ -214,8 +214,8 @@
         "HealthCheck" : {
           "Target" : "HTTP:8080/patients",
           "HealthyThreshold" : "2",
-          "UnhealthyThreshold" : "6",
-          "Interval" : "300",
+          "UnhealthyThreshold" : "2",
+          "Interval" : "30",
           "Timeout" : "5"
         },
         "Tags" : [ { "Key" : "Name", "Value" : "resilient-elb" } ]
