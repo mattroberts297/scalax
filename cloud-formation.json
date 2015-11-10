@@ -26,13 +26,13 @@
           "EnableDnsSupport" : "true",
           "EnableDnsHostnames" : "true",
           "InstanceTenancy" : "default",
-          "Tags" : [ {"Key" : "Name", "Value" : "resilient-vpc"} ]
+          "Tags" : [ {"Key" : "Name", "Value" : "elastic-vpc"} ]
        }
     },
     "internetGateway" : {
       "Type" : "AWS::EC2::InternetGateway",
       "Properties" : {
-        "Tags" : [ {"Key" : "Name", "Value" : "resilient-internet-gateway"} ]
+        "Tags" : [ {"Key" : "Name", "Value" : "elastic-internet-gateway"} ]
       }
     },
     "vpcGatewayAttachment" : {
@@ -48,7 +48,7 @@
           "VpcId" : { "Ref" : "vpc" },
           "CidrBlock" : "10.0.0.0/17",
           "AvailabilityZone" : "eu-west-1a",
-          "Tags" : [ { "Key" : "Name", "Value" : "resilient-subnet-a" } ]
+          "Tags" : [ { "Key" : "Name", "Value" : "elastic-subnet-a" } ]
        }
     },
     "subnetB" : {
@@ -57,14 +57,14 @@
           "VpcId" : { "Ref" : "vpc" },
           "CidrBlock" : "10.0.128.0/17",
           "AvailabilityZone" : "eu-west-1b",
-          "Tags" : [ { "Key" : "Name", "Value" : "resilient-subnet-b" } ]
+          "Tags" : [ { "Key" : "Name", "Value" : "elastic-subnet-b" } ]
        }
     },
     "routeTable" : {
       "Type" : "AWS::EC2::RouteTable",
       "Properties" : {
         "VpcId" : { "Ref" : "vpc" },
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-route-table" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-route-table" } ]
       }
     },
     "routeToInternet" : {
@@ -102,7 +102,7 @@
         "SecurityGroupEgress" : [
           { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
         ],
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-security-group" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-app-security-group" } ]
       }
     },
     "appInstanceA" : {
@@ -117,19 +117,20 @@
           "GroupSet": [{ "Ref" : "appSecurityGroup" }],
           "SubnetId": { "Ref" : "subnetA" }
         } ],
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-instance-a" } ],
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-app-instance-a" } ],
         "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
           "#!/bin/bash",
           "su akkahttp <<EOU",
           "cd /opt/akkahttp",
           "cat >> conf/application.conf <<EOF",
           "org.scalax.reactive.db {",
-          "  dataSourceClass = \"org.postgresql.ds.PGSimpleDataSource\"",
-          "  properties = {",
-          { "Fn::Join" : [ "", [ "    url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
-          "    user = \"reactiveapp\"",
-          { "Fn::Join" : [ "", [ "    password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
-          "  }",
+          "  driver = \"org.postgresql.Driver\"",
+          { "Fn::Join" : [ "", [ "  url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
+          "  user = \"reactiveapp\"",
+          { "Fn::Join" : [ "", [ "  password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
+          "  numThreads = 20",
+          "  maxConnections = 2",
+          "  minConnections = 1",
           "}",
           "org.scalax.reactive.memcached {",
           { "Fn::Join" : [ "", [ "  addresses = \"", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Address"] }, ":", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Port"] }, "\"" ] ] },
@@ -153,19 +154,20 @@
           "GroupSet": [{ "Ref" : "appSecurityGroup" }],
           "SubnetId": { "Ref" : "subnetB" }
         } ],
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-app-instance-b" } ],
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-app-instance-b" } ],
         "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
           "#!/bin/bash",
           "su akkahttp <<EOU",
           "cd /opt/akkahttp",
           "cat >> conf/application.conf <<EOF",
           "org.scalax.reactive.db {",
-          "  dataSourceClass = \"org.postgresql.ds.PGSimpleDataSource\"",
-          "  properties = {",
-          { "Fn::Join" : [ "", [ "    url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
-          "    user = \"reactiveapp\"",
-          { "Fn::Join" : [ "", [ "    password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
-          "  }",
+          "  driver = \"org.postgresql.Driver\"",
+          { "Fn::Join" : [ "", [ "  url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
+          "  user = \"reactiveapp\"",
+          { "Fn::Join" : [ "", [ "  password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
+          "  numThreads = 20",
+          "  maxConnections = 2",
+          "  minConnections = 1",
           "}",
           "org.scalax.reactive.memcached {",
           { "Fn::Join" : [ "", [ "  addresses = \"", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Address"] }, ":", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Port"] }, "\"" ] ] },
@@ -188,7 +190,7 @@
         "SecurityGroupEgress" : [
           { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
         ],
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-elb-security-group" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-elb-security-group" } ]
       }
     },
     "elb" : {
@@ -209,7 +211,7 @@
           "Interval" : "300",
           "Timeout" : "5"
         },
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-elb" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-elb" } ]
       }
     },
     "databaseSecurityGroup" : {
@@ -220,15 +222,15 @@
         "SecurityGroupIngress" : [
           { "IpProtocol" : "tcp", "FromPort" : "5432",  "ToPort" : "5432", "SourceSecurityGroupId" : { "Ref" : "appSecurityGroup" } }
         ],
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-security-group" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-database-security-group" } ]
       }
     },
     "databaseSubnetGroup": {
        "Type" : "AWS::RDS::DBSubnetGroup",
        "Properties" : {
-          "DBSubnetGroupDescription" : "resilient-database-subnet-group",
+          "DBSubnetGroupDescription" : "elastic-database-subnet-group",
           "SubnetIds" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ],
-          "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-subnet-group" } ]
+          "Tags" : [ { "Key" : "Name", "Value" : "elastic-database-subnet-group" } ]
        }
     },
     "database" : {
@@ -241,7 +243,7 @@
         "AutoMinorVersionUpgrade" : true,
         "BackupRetentionPeriod" : "7",
         "DBInstanceClass" : "db.t2.micro",
-        "DBInstanceIdentifier" : "resilient-database-instance",
+        "DBInstanceIdentifier" : "elastic-database-instance",
         "DBName" : "reactive",
         "DBSubnetGroupName" : { "Ref" : "databaseSubnetGroup" },
         "Engine" : "postgres",
@@ -253,7 +255,7 @@
         "PreferredMaintenanceWindow" : "Mon:05:00-Mon:05:30",
         "PubliclyAccessible" : false,
         "StorageType" : "standard",
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-database-instance" } ],
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-database-instance" } ],
         "VPCSecurityGroups" : [ { "Ref" : "databaseSecurityGroup" } ]
       }
     },
@@ -272,7 +274,7 @@
         "SecurityGroupIngress" : [
           { "IpProtocol" : "tcp", "FromPort" : "11211",  "ToPort" : "11211", "SourceSecurityGroupId" : { "Ref" : "appSecurityGroup" } }
         ],
-        "Tags" : [ { "Key" : "Name", "Value" : "resilient-cache-security-group" } ]
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-cache-security-group" } ]
       }
     },
     "cache": {
@@ -282,7 +284,7 @@
         "AZMode": "cross-az",
         "CacheNodeType": "cache.t2.micro",
         "CacheSubnetGroupName": { "Ref" : "cacheSubnetGroup" },
-        "ClusterName": "resilient-cache-cluster",
+        "ClusterName": "elastic-cache",
         "Engine": "memcached",
         "NumCacheNodes": "2",
         "VpcSecurityGroupIds": [{"Fn::GetAtt": [ "cacheSecurityGroup", "GroupId"]}]
