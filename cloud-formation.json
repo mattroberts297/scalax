@@ -90,95 +90,6 @@
         "RouteTableId" : { "Ref" : "routeTable" }
       }
     },
-    "appSecurityGroup" : {
-      "Type" : "AWS::EC2::SecurityGroup",
-      "Properties" : {
-        "GroupDescription" : "Allow access on 8080 from within the elb",
-        "VpcId" : { "Ref" : "vpc" },
-        "SecurityGroupIngress" : [
-          { "IpProtocol" : "tcp", "FromPort" : "8080",  "ToPort" : "8080", "SourceSecurityGroupId" : { "Ref" : "elbSecurityGroup" } },
-          { "IpProtocol" : "tcp", "CidrIp" : "0.0.0.0/0", "FromPort" : "22", "ToPort" : "22" }
-        ],
-        "SecurityGroupEgress" : [
-          { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
-        ],
-        "Tags" : [ { "Key" : "Name", "Value" : "elastic-app-security-group" } ]
-      }
-    },
-    "appInstanceA" : {
-      "Type" : "AWS::EC2::Instance",
-      "Properties" : {
-        "ImageId" : "ami-26f92155",
-        "InstanceType": "t2.micro",
-        "KeyName" : { "Ref" : "keyName" },
-        "NetworkInterfaces": [ {
-          "AssociatePublicIpAddress": "true",
-          "DeviceIndex": "0",
-          "GroupSet": [{ "Ref" : "appSecurityGroup" }],
-          "SubnetId": { "Ref" : "subnetA" }
-        } ],
-        "Tags" : [ { "Key" : "Name", "Value" : "elastic-app-instance-a" } ],
-        "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
-          "#!/bin/bash",
-          "su akkahttp <<EOU",
-          "cd /opt/akkahttp",
-          "cat >> conf/application.conf <<EOF",
-          "org.scalax.reactive.db {",
-          "  driver = \"org.postgresql.Driver\"",
-          { "Fn::Join" : [ "", [ "  url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
-          "  user = \"reactiveapp\"",
-          { "Fn::Join" : [ "", [ "  password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
-          "  numThreads = 20",
-          "  maxConnections = 2",
-          "  minConnections = 1",
-          "}",
-          "org.scalax.reactive.memcached {",
-          { "Fn::Join" : [ "", [ "  addresses = \"", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Address"] }, ":", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Port"] }, "\"" ] ] },
-          "}",
-          "EOF",
-          "cd bin",
-          "nohup ./akka-http-example &",
-          "EOU"
-        ]]}}
-      }
-    },
-    "appInstanceB" : {
-      "Type" : "AWS::EC2::Instance",
-      "Properties" : {
-        "ImageId" : "ami-26f92155",
-        "InstanceType": "t2.micro",
-        "KeyName" : { "Ref" : "keyName" },
-        "NetworkInterfaces": [ {
-          "AssociatePublicIpAddress": "true",
-          "DeviceIndex": "0",
-          "GroupSet": [{ "Ref" : "appSecurityGroup" }],
-          "SubnetId": { "Ref" : "subnetB" }
-        } ],
-        "Tags" : [ { "Key" : "Name", "Value" : "elastic-app-instance-b" } ],
-        "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
-          "#!/bin/bash",
-          "su akkahttp <<EOU",
-          "cd /opt/akkahttp",
-          "cat >> conf/application.conf <<EOF",
-          "org.scalax.reactive.db {",
-          "  driver = \"org.postgresql.Driver\"",
-          { "Fn::Join" : [ "", [ "  url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
-          "  user = \"reactiveapp\"",
-          { "Fn::Join" : [ "", [ "  password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
-          "  numThreads = 20",
-          "  maxConnections = 2",
-          "  minConnections = 1",
-          "}",
-          "org.scalax.reactive.memcached {",
-          { "Fn::Join" : [ "", [ "  addresses = \"", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Address"] }, ":", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Port"] }, "\"" ] ] },
-          "}",
-          "EOF",
-          "cd bin",
-          "nohup ./akka-http-example &",
-          "EOU"
-        ]]}}
-      }
-    },
     "elbSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
@@ -198,7 +109,6 @@
       "Properties" : {
         "SecurityGroups" : [{ "Ref" : "elbSecurityGroup" }],
         "Subnets" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ],
-        "Instances" : [ { "Ref" : "appInstanceA" } , { "Ref" : "appInstanceB" } ],
         "Listeners" : [ {
           "LoadBalancerPort" : "80",
           "InstancePort" : "8080",
@@ -207,12 +117,126 @@
         "HealthCheck" : {
           "Target" : "HTTP:8080/patients",
           "HealthyThreshold" : "2",
-          "UnhealthyThreshold" : "6",
-          "Interval" : "300",
+          "UnhealthyThreshold" : "2",
+          "Interval" : "30",
           "Timeout" : "5"
         },
         "Tags" : [ { "Key" : "Name", "Value" : "elastic-elb" } ]
       }
+    },
+    "appSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Allow access on 8080 from within the elb",
+        "VpcId" : { "Ref" : "vpc" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "8080",  "ToPort" : "8080", "SourceSecurityGroupId" : { "Ref" : "elbSecurityGroup" } },
+          { "IpProtocol" : "tcp", "CidrIp" : "0.0.0.0/0", "FromPort" : "22", "ToPort" : "22" }
+        ],
+        "SecurityGroupEgress" : [
+          { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0", "FromPort" : "0", "ToPort" : "65535" }
+        ],
+        "Tags" : [ { "Key" : "Name", "Value" : "elastic-app-security-group" } ]
+      }
+    },
+    "appLaunchConfiguration" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties" : {
+        "ImageId" : "ami-26f92155",
+        "InstanceType": "t2.micro",
+        "KeyName" : { "Ref" : "keyName" },
+        "SecurityGroups" : [ { "Ref" : "appSecurityGroup" } ],
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "\n", [
+          "#!/bin/bash",
+          "su akkahttp <<EOU",
+          "cd /opt/akkahttp",
+          "cat >> conf/application.conf <<EOF",
+          "org.scalax.reactive.db {",
+          "  driver = \"org.postgresql.Driver\"",
+          { "Fn::Join" : [ "", [ "  url = \"jdbc:postgresql://", { "Fn::GetAtt" : ["database", "Endpoint.Address"] }, ":", { "Fn::GetAtt" : ["database", "Endpoint.Port"] }, "/reactive\"" ] ] },
+          "  user = \"reactiveapp\"",
+          { "Fn::Join" : [ "", [ "  password = \"", { "Ref" : "rdsPassword" }, "\"" ] ] },
+          "  numThreads = 20",
+          "  maxConnections = 2",
+          "  minConnections = 1",
+          "}",
+          "org.scalax.reactive.memcached {",
+          { "Fn::Join" : [ "", [ "  addresses = \"", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Address"] }, ":", { "Fn::GetAtt" : ["cache", "ConfigurationEndpoint.Port"] }, "\"" ] ] },
+          "}",
+          "EOF",
+          "cd bin",
+          "nohup ./akka-http-example &",
+          "EOU"
+        ]]}}
+      }
+    },
+    "appAutoScalingGroup" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "VPCZoneIdentifier" : [ { "Ref" : "subnetA" }, { "Ref" : "subnetB" } ],
+        "LaunchConfigurationName" : { "Ref" : "appLaunchConfiguration" },
+        "MinSize" : "2",
+        "MaxSize" : "4",
+        "DesiredCapacity" : "2",
+        "LoadBalancerNames" : [ { "Ref" : "elb" } ],
+        "Tags" : [
+          { "Key" : "Name", "Value" : "elastic-app-instance", "PropagateAtLaunch" : "true" }
+        ]
+      }
+    },
+    "appScaleUpPolicy" : {
+       "Type" : "AWS::AutoScaling::ScalingPolicy",
+       "Properties" : {
+          "AdjustmentType" : "ChangeInCapacity",
+          "AutoScalingGroupName" : { "Ref" : "appAutoScalingGroup" },
+          "Cooldown" : "1",
+          "ScalingAdjustment" : "1"
+       }
+    },
+    "appScaleDownPolicy" : {
+       "Type" : "AWS::AutoScaling::ScalingPolicy",
+       "Properties" : {
+          "AdjustmentType" : "ChangeInCapacity",
+          "AutoScalingGroupName" : { "Ref" : "appAutoScalingGroup" },
+          "Cooldown" : "1",
+          "ScalingAdjustment" : "-1"
+       }
+    },
+    "appCpuAlarmHigh": {
+       "Type": "AWS::CloudWatch::Alarm",
+       "Properties": {
+          "EvaluationPeriods": "1",
+          "Statistic": "Average",
+          "Threshold": "80",
+          "AlarmDescription": "Alarm if CPU too high or metric disappears indicating instance is down",
+          "Period": "60",
+          "AlarmActions": [ { "Ref": "appScaleUpPolicy" } ],
+          "Namespace": "AWS/EC2",
+          "Dimensions": [ {
+             "Name": "AutoScalingGroupName",
+             "Value": { "Ref": "appAutoScalingGroup" }
+          } ],
+          "ComparisonOperator": "GreaterThanThreshold",
+          "MetricName": "CPUUtilization"
+       }
+    },
+    "appCpuAlarmLow": {
+       "Type": "AWS::CloudWatch::Alarm",
+       "Properties": {
+          "EvaluationPeriods": "1",
+          "Statistic": "Average",
+          "Threshold": "20",
+          "AlarmDescription": "Alarm if CPU too low",
+          "Period": "60",
+          "AlarmActions": [ { "Ref": "appScaleDownPolicy" } ],
+          "Namespace": "AWS/EC2",
+          "Dimensions": [ {
+             "Name": "AutoScalingGroupName",
+             "Value": { "Ref": "appAutoScalingGroup" }
+          } ],
+          "ComparisonOperator": "LessThanThreshold",
+          "MetricName": "CPUUtilization"
+       }
     },
     "databaseSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
