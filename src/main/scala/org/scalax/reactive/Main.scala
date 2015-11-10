@@ -5,8 +5,9 @@ import akka.stream.ActorMaterializer
 import akka.http.scaladsl.Http
 import org.scalax.reactive.db.{MemcachedDao, PostgresDatabaseDriver, SqlDao, Daos}
 import org.scalax.reactive.http.PatientRoutes
+import org.slf4s.Logging
 
-object Main extends App with PatientRoutes with Daos with ImplicitExecutionContext with ImplicitMaterializer {
+object Main extends App with PatientRoutes with Daos with ImplicitExecutionContext with ImplicitMaterializer with Logging {
   implicit val system = ActorSystem("reactive-system")
   implicit val context = system.dispatcher
   implicit val materializer = ActorMaterializer()
@@ -20,7 +21,7 @@ object Main extends App with PatientRoutes with Daos with ImplicitExecutionConte
       val address = binding.localAddress
       val hostName = address.getHostName
       val port = address.getPort
-      println(s"Spray up at http://$hostName:$port")
+      log.info(s"Spray up at http://$hostName:$port")
     }
   )
 }
