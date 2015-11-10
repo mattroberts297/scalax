@@ -108,7 +108,7 @@
     "appInstanceA" : {
       "Type" : "AWS::EC2::Instance",
       "Properties" : {
-        "ImageId" : "ami-b0c119c3",
+        "ImageId" : "ami-26f92155",
         "InstanceType": "t2.micro",
         "KeyName" : { "Ref" : "keyName" },
         "NetworkInterfaces": [ {
@@ -145,7 +145,7 @@
     "appInstanceB" : {
       "Type" : "AWS::EC2::Instance",
       "Properties" : {
-        "ImageId" : "ami-b0c119c3",
+        "ImageId" : "ami-26f92155",
         "InstanceType": "t2.micro",
         "KeyName" : { "Ref" : "keyName" },
         "NetworkInterfaces": [ {
