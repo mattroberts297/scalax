@@ -275,7 +275,7 @@
         "Tags" : [ { "Key" : "Name", "Value" : "resilient-cache-security-group" } ]
       }
     },
-    "cacheCluster": {
+    "cache": {
       "Type": "AWS::ElastiCache::CacheCluster",
       "Properties": {
         "AutoMinorVersionUpgrade": "true",
